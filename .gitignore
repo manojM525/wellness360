@@ -1,0 +1,20 @@
+# Ignore Terraform local overrides and plugins
+.terraform/
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl
+
+# Ignore Application Dependencies (adjust based on your language)
+node_modules/
+dist/
+build/
+.env
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+**/ .terraform/
+*.exe
+*.tfstate
+*.tfstate.backup

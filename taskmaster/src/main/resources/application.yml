@@ -1,0 +1,50 @@
+spring:
+  application:
+    name: taskmaster
+
+  datasource:
+    # Built from the exact env var names the ECS task definition injects —
+    # DB_HOST/DB_PORT/DB_NAME via SSM Parameter Store, DB_USERNAME/DB_PASSWORD
+    # via the RDS-managed Secrets Manager secret. Defaults here are for local
+    # dev only (docker-compose or a local MySQL), never used in ECS since the
+    # env vars are always present there.
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:taskmaster}?useSSL=true&serverTimezone=UTC
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:password}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      # DEMO-ONLY CHOICE, not a production-safe default: `update` lets
+      # Hibernate auto-alter the schema from the entity model. A real system
+      # would use Flyway or Liquibase with explicit, reviewable, reversible
+      # migrations instead — flagged as a known gap since Phase 1, not new.
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # Only what's actually needed: health for the ALB target group,
+        # prometheus for AMP scraping, info for basic build metadata.
+        # Never "*" — that would expose /actuator/env, /actuator/beans, etc.
+        # publicly through the same ALB.
+        include: health, prometheus, info
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+server:
+  port: 8080
+
+logging:
+  config: classpath:logback-spring.xml
