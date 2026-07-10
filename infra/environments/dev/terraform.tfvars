@@ -1,5 +1,5 @@
 aws_region  = "us-east-1"
-project_name = "taskmaster"
+project_name = "manoj-taskmaster"
 environment  = "dev"
 
 vpc_cidr            = "10.10.0.0/16"
@@ -10,7 +10,7 @@ private_app_subnet_cidrs = ["10.10.10.0/24", "10.10.11.0/24"]
 private_data_subnet_cidrs = ["10.10.20.0/24", "10.10.21.0/24"]
 
 # Replace with your actual registered domain once purchased.
-domain_name = "taskmaster-devops.example.com"
+domain_name = "roadtofuture.shop"
 
 # RDS: dev is intentionally minimal — single-AZ, no deletion protection,
 # skip final snapshot on destroy so `terraform destroy` in dev is actually fast.

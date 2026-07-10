@@ -27,7 +27,7 @@ variable "aws_region" {
 variable "project_name" {
   description = "Used as a naming prefix for the state bucket and lock table"
   type        = string
-  default     = "taskmaster"
+  default     = "manoj-taskmaster"
 }
 
 # --- S3 bucket for Terraform state ---
