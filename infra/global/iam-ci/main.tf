@@ -24,15 +24,17 @@ variable "aws_region" {
 
 variable "project_name" {
   type    = string
-  default = "taskmaster"
+  default = "manoj-taskmaster"
 }
 
 variable "github_org" {
   type = string
+  default = "manojM525"
 }
 
 variable "github_repo" {
   type = string
+  default = "wellness360"
 }
 
 data "aws_caller_identity" "current" {}

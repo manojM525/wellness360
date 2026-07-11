@@ -25,7 +25,7 @@ variable "aws_region" {
 
 variable "project_name" {
   type    = string
-  default = "taskmaster"
+  default = "manoj-taskmaster"
 }
 
 variable "github_actions_role_arn" {
