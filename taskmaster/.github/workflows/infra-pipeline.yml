@@ -1,0 +1,159 @@
+name: Infra Plan & Apply
+
+# Only triggers when infra/** actually changes — this pipeline should never
+# run just because application code changed. That's the whole point of
+# keeping it separate from app-pipeline.yml.
+on:
+  pull_request:
+    branches: [develop, main]
+    paths: ['infra/**']
+  push:
+    branches: [develop, main]
+    paths: ['infra/**']
+
+# Required repo Variables:
+#   AWS_REGION, AWS_TERRAFORM_ROLE_ARN (global/iam-ci output: terraform_apply_role_arn)
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write # needed to post the plan as a PR comment
+
+concurrency:
+  group: infra-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # No AWS credentials needed here at all — `-backend=false` skips backend
+  # initialization entirely, so this job can run on every PR from anyone
+  # without needing repo secrets exposed to it.
+  # ---------------------------------------------------------------------------
+  fmt-and-validate:
+    name: Format & Validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.9.8'
+
+      - name: terraform fmt check
+        run: terraform fmt -check -recursive infra/
+
+      - name: terraform validate (dev)
+        working-directory: infra/environments/dev
+        run: |
+          terraform init -backend=false
+          terraform validate
+
+      - name: terraform validate (prod)
+        working-directory: infra/environments/prod
+        run: |
+          terraform init -backend=false
+          terraform validate
+
+  # ---------------------------------------------------------------------------
+  # PR-only: plan against whichever environment the PR targets, post the
+  # plan as a comment so a reviewer can actually read what would change
+  # before approving — this is the review step that matters most for
+  # infrastructure, more than the code diff itself in most cases.
+  # ---------------------------------------------------------------------------
+  plan:
+    name: Terraform Plan
+    needs: fmt-and-validate
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: env
+        run: |
+          if [ "${{ github.base_ref }}" = "main" ]; then
+            echo "dir=infra/environments/prod" >> "$GITHUB_OUTPUT"
+            echo "name=prod" >> "$GITHUB_OUTPUT"
+          else
+            echo "dir=infra/environments/dev" >> "$GITHUB_OUTPUT"
+            echo "name=dev" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_TERRAFORM_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.9.8'
+
+      - name: terraform init
+        working-directory: ${{ steps.env.outputs.dir }}
+        run: terraform init
+
+      - name: terraform plan
+        working-directory: ${{ steps.env.outputs.dir }}
+        run: terraform plan -no-color -out=tfplan | tee plan_output.txt
+
+      - name: Post plan as PR comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const dir = '${{ steps.env.outputs.dir }}';
+            const envName = '${{ steps.env.outputs.name }}';
+            const output = fs.readFileSync(`${dir}/plan_output.txt`, 'utf8').slice(0, 60000);
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `### Terraform Plan — \`${envName}\`\n\`\`\`\n${output}\n\`\`\``
+            });
+
+  # ---------------------------------------------------------------------------
+  # Apply — runs only on push (i.e. after merge), never on a PR itself.
+  # develop merges apply to dev automatically; main merges apply to prod
+  # behind the "production" Environment's required-reviewer gate.
+  # ---------------------------------------------------------------------------
+  apply-dev:
+    name: Terraform Apply (dev)
+    needs: fmt-and-validate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    environment: development
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_TERRAFORM_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.9.8'
+      - working-directory: infra/environments/dev
+        run: |
+          terraform init
+          terraform apply -auto-approve
+
+  apply-prod:
+    name: Terraform Apply (prod)
+    needs: fmt-and-validate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    # Same protected "production" Environment as app-pipeline.yml's
+    # deploy-prod job — an infra change reaching prod requires exactly the
+    # same human approval as an application deploy reaching prod.
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_TERRAFORM_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.9.8'
+      - working-directory: infra/environments/prod
+        run: |
+          terraform init
+          terraform apply -auto-approve

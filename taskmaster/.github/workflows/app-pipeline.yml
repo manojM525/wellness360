@@ -1,0 +1,210 @@
+name: App Build & Deploy
+
+# develop -> deploys to dev. main -> deploys to prod (behind a GitHub
+# Environment approval gate — configure "production" as a protected
+# environment with required reviewers in repo Settings > Environments;
+# that's a UI setting, not something expressible in this YAML).
+# Pull requests run lint+test only — never build, push, or deploy, since a
+# PR from any branch (including a fork) should never be able to push an
+# image or touch a running environment.
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+
+# Required repo Variables (Settings > Secrets and variables > Actions > Variables):
+#   AWS_REGION              e.g. us-east-1
+#   AWS_DEPLOY_ROLE_ARN     from global/iam-ci output: deploy_role_arn
+#   ECR_REGISTRY            <account-id>.dkr.ecr.<region>.amazonaws.com
+#   ECR_REPOSITORY          taskmaster/app
+#   DEV_ECS_CLUSTER / DEV_ECS_SERVICE / DEV_ECS_TASK_FAMILY / DEV_APP_URL
+#   PROD_ECS_CLUSTER / PROD_ECS_SERVICE / PROD_ECS_TASK_FAMILY / PROD_APP_URL
+# (cluster/service/task-family names come straight from the dev/prod
+# Terraform outputs — ecs_cluster_name, ecs_service_name, ecs_task_definition_family)
+
+permissions:
+  id-token: write   # required for OIDC — no long-lived AWS keys anywhere in this pipeline
+  contents: read
+
+concurrency:
+  group: app-deploy-${{ github.ref }}
+  cancel-in-progress: false # never cancel a deploy mid-flight — let it finish or fail cleanly
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Runs on every push AND every PR. This is the only job PRs ever reach.
+  # ---------------------------------------------------------------------------
+  test:
+    name: Lint & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      # NOTE: no static analysis step (Checkstyle/Spotless) is configured —
+      # the pom.xml doesn't declare one. Flagging this as an honest gap
+      # rather than faking a lint step that doesn't check anything.
+      - name: Run tests
+        run: mvn -B -ntp verify
+        # `verify` runs both the context-load test and the @DataJpaTest
+        # repository test against in-memory H2 (application-test.yml) — no
+        # live database needed for this stage, by design.
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: target/surefire-reports/
+          retention-days: 14
+
+  # ---------------------------------------------------------------------------
+  # Build once, tag by Git SHA, scan, push. Only runs on a real push to
+  # develop or main — never on a PR. This is the ONE place an image gets
+  # built; dev and prod both later deploy this exact artifact by reference.
+  # ---------------------------------------------------------------------------
+  build-and-push:
+    name: Build, Scan, Push Image
+    needs: test
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.vars.outputs.image_tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: vars
+        run: echo "image_tag=sha-${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
+        # Matches the "sha-" prefix the ECR lifecycle policy's tagPrefixList
+        # expects (global/ecr module) — keeping these two in sync is a real
+        # coupling point, same category as the container env var names.
+
+      - name: Configure AWS credentials (deploy role via OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - uses: docker/setup-buildx-action@v3
+
+      # Build and load locally (push: false) so Trivy can scan the exact
+      # image BEFORE anything reaches the registry — a vulnerable image
+      # should never even exist in ECR, not just never get deployed.
+      - name: Build image (local)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: ${{ steps.ecr-login.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:${{ steps.vars.outputs.image_tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Scan image (Trivy)
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: ${{ steps.ecr-login.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:${{ steps.vars.outputs.image_tag }}
+          severity: HIGH,CRITICAL
+          exit-code: '1' # fail the build — a HIGH/CRITICAL finding blocks the push entirely, it's not advisory
+          ignore-unfixed: true # no fix available yet = nothing actionable today; still worth periodic manual review, just not a hard gate
+
+      - name: Push image
+        if: success() # only reachable if the scan passed
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.ecr-login.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:${{ steps.vars.outputs.image_tag }}
+          cache-from: type=gha
+
+  # ---------------------------------------------------------------------------
+  # Deploy to dev — triggered by pushes to develop, no manual gate.
+  # ---------------------------------------------------------------------------
+  deploy-dev:
+    name: Deploy to Dev
+    needs: build-and-push
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    environment: development
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Deploy new image to ECS
+        env:
+          IMAGE_URI: ${{ vars.ECR_REGISTRY }}/${{ vars.ECR_REPOSITORY }}:${{ needs.build-and-push.outputs.image_tag }}
+          CLUSTER: ${{ vars.DEV_ECS_CLUSTER }}
+          SERVICE: ${{ vars.DEV_ECS_SERVICE }}
+          TASK_FAMILY: ${{ vars.DEV_ECS_TASK_FAMILY }}
+        run: ./.github/scripts/deploy-ecs.sh
+
+      - name: Smoke test
+        env:
+          APP_URL: ${{ vars.DEV_APP_URL }}
+        run: ./.github/scripts/smoke-test.sh
+
+  # ---------------------------------------------------------------------------
+  # Deploy to prod — triggered by pushes to main. The `environment: production`
+  # line is what actually creates the manual-approval gate, PROVIDED the
+  # "production" environment is configured with required reviewers in repo
+  # Settings — this workflow file alone does not enforce that by itself.
+  # ---------------------------------------------------------------------------
+  deploy-prod:
+    name: Deploy to Prod
+    needs: build-and-push
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Deploy new image to ECS
+        env:
+          IMAGE_URI: ${{ vars.ECR_REGISTRY }}/${{ vars.ECR_REPOSITORY }}:${{ needs.build-and-push.outputs.image_tag }}
+          CLUSTER: ${{ vars.PROD_ECS_CLUSTER }}
+          SERVICE: ${{ vars.PROD_ECS_SERVICE }}
+          TASK_FAMILY: ${{ vars.PROD_ECS_TASK_FAMILY }}
+        run: ./.github/scripts/deploy-ecs.sh
+
+      - name: Smoke test
+        env:
+          APP_URL: ${{ vars.PROD_APP_URL }}
+        run: ./.github/scripts/smoke-test.sh
+
+  # ---------------------------------------------------------------------------
+  # Notification — runs regardless of outcome, tells you which one happened.
+  # ---------------------------------------------------------------------------
+  notify:
+    name: Notify
+    needs: [deploy-dev, deploy-prod]
+    if: always() && (needs.deploy-dev.result != 'skipped' || needs.deploy-prod.result != 'skipped')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report outcome
+        run: |
+          if [ "${{ needs.deploy-dev.result }}" = "failure" ] || [ "${{ needs.deploy-prod.result }}" = "failure" ]; then
+            echo "::error::Deployment failed — check the ECS deployment circuit breaker; a failed health check should have triggered an automatic rollback already."
+            # Wire a real Slack/SNS notification here with SLACK_WEBHOOK_URL /
+            # an SNS topic ARN as a repo secret — intentionally left as a
+            # documented next step rather than a fake no-op notification.
+          else
+            echo "Deployment succeeded."
+          fi
