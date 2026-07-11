@@ -88,8 +88,7 @@ module "alb" {
   public_subnet_ids  = module.network.public_subnet_ids
   alb_security_group_id = module.security_groups.alb_security_group_id
   certificate_arn    = module.acm_dns.certificate_arn
-
-  deletion_protection = var.alb_deletion_protection
+  alb_deletion_protection = var.alb_deletion_protection
 }
 
 # Ties acm_dns's hosted zone to alb's DNS name — deliberately a root-level
@@ -132,6 +131,7 @@ module "ecs_service" {
   private_app_subnet_ids     = module.network.private_app_subnet_ids
   ecs_task_security_group_id = module.security_groups.ecs_task_security_group_id
   target_group_arn           = module.alb.target_group_arn
+  alb_arn                    = module.alb.alb_arn
 
   execution_role_arn = module.ecs_iam.execution_role_arn
   task_role_arn       = module.ecs_iam.task_role_arn
