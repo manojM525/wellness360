@@ -73,3 +73,7 @@ output "ecs_service_name" {
 output "ecs_task_definition_family" {
   value = module.ecs_service.task_definition_family
 }
+
+output "amp_workspace_id" {
+  value = module.observability.workspace_id
+}

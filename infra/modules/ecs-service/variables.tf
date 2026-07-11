@@ -110,6 +110,18 @@ variable "sns_alarm_topic_arn" {
   default     = null
 }
 
+variable "enable_observability" {
+  description = "If true, adds an ADOT collector sidecar that scrapes /actuator/prometheus and remote-writes to AMP"
+  type        = bool
+  default     = false
+}
+
+variable "amp_remote_write_endpoint" {
+  description = "Required if enable_observability = true — from the observability module's remote_write_endpoint output"
+  type        = string
+  default     = ""
+}
+
 variable "tags" {
   type    = map(string)
   default = {}

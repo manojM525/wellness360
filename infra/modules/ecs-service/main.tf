@@ -22,6 +22,103 @@ resource "aws_cloudwatch_log_group" "app" {
   tags = local.common_tags
 }
 
+locals {
+  app_container = {
+    name      = local.container_name
+    image     = "${var.ecr_repository_url}:${var.image_tag}"
+    essential = true
+
+    portMappings = [
+      {
+        containerPort = var.container_port
+        protocol      = "tcp"
+      }
+    ]
+
+    # Non-secret DB config via SSM Parameter Store, credentials via the
+    # RDS-managed Secrets Manager secret (JSON-key syntax pulls just the
+    # field needed, never the whole secret blob, into a single env var).
+    secrets = [
+      { name = "DB_HOST", valueFrom = var.db_host_ssm_arn },
+      { name = "DB_PORT", valueFrom = var.db_port_ssm_arn },
+      { name = "DB_NAME", valueFrom = var.db_name_ssm_arn },
+      { name = "DB_USERNAME", valueFrom = "${var.db_secret_arn}:username::" },
+      { name = "DB_PASSWORD", valueFrom = "${var.db_secret_arn}:password::" },
+    ]
+
+    environment = [
+      { name = "SPRING_PROFILES_ACTIVE", value = var.environment }
+    ]
+
+    logConfiguration = {
+      logDriver = "awslogs"
+      options = {
+        "awslogs-group"         = aws_cloudwatch_log_group.app.name
+        "awslogs-region"        = data.aws_region.current.name
+        "awslogs-stream-prefix" = "ecs"
+      }
+    }
+  }
+
+  # ADOT collector config: scrapes the app's own actuator endpoint over
+  # localhost (both containers share the task's network namespace under
+  # awsvpc mode, so "localhost" genuinely reaches the app container -- this
+  # only works because they're in the SAME task, not separate services),
+  # then remote-writes to AMP using SigV4 request signing via the task role.
+  adot_config = <<-EOT
+    receivers:
+      prometheus:
+        config:
+          scrape_configs:
+            - job_name: 'spring-boot-app'
+              scrape_interval: 30s
+              metrics_path: /actuator/prometheus
+              static_configs:
+                - targets: ['localhost:${var.container_port}']
+    exporters:
+      prometheusremotewrite:
+        endpoint: "${var.amp_remote_write_endpoint}"
+        auth:
+          authenticator: sigv4auth
+    extensions:
+      sigv4auth:
+        region: "${data.aws_region.current.name}"
+        service: "aps"
+    service:
+      extensions: [sigv4auth]
+      pipelines:
+        metrics:
+          receivers: [prometheus]
+          exporters: [prometheusremotewrite]
+  EOT
+
+  adot_container = {
+    name = "adot-collector"
+    # Pin to a specific tag, not :latest -- verify the current recommended
+    # tag against AWS's ADOT collector release notes at deploy time.
+    image     = "public.ecr.aws/aws-observability/aws-otel-collector:v0.39.1"
+    essential = false # the app itself must not go down if the metrics sidecar has a bad day
+
+    environment = [
+      { name = "AOT_CONFIG_CONTENT", value = local.adot_config }
+    ]
+
+    logConfiguration = {
+      logDriver = "awslogs"
+      options = {
+        "awslogs-group"         = aws_cloudwatch_log_group.app.name
+        "awslogs-region"        = data.aws_region.current.name
+        "awslogs-stream-prefix" = "adot"
+      }
+    }
+  }
+
+  container_definitions = concat(
+    [local.app_container],
+    var.enable_observability ? [local.adot_container] : []
+  )
+}
+
 # ---------------------------------------------------------------------------
 # Task Definition
 # ---------------------------------------------------------------------------

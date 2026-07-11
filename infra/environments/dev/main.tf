@@ -119,6 +119,33 @@ module "ecs_cluster" {
   environment  = var.environment
 }
 
+module "observability" {
+  source = "../../modules/observability"
+
+  project_name = var.project_name
+  environment  = var.environment
+}
+
+# The ADOT sidecar uses the TASK role (not the execution role) to sign its
+# remote-write requests — it's the running container calling AWS, not the
+# ECS agent's startup bootstrap. Attached externally here rather than inside
+# ecs-iam, so that module stays unaware of AMP specifics.
+resource "aws_iam_role_policy" "task_amp_remote_write" {
+  name = "${var.project_name}-${var.environment}-amp-remote-write"
+  role = module.ecs_iam.task_role_name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["aps:RemoteWrite"]
+        Resource = module.observability.workspace_arn
+      }
+    ]
+  })
+}
+
 module "ecs_service" {
   source = "../../modules/ecs-service"
 
@@ -154,4 +181,6 @@ module "ecs_service" {
   db_port_ssm_arn = local.ssm_db_arns.port
   db_name_ssm_arn = local.ssm_db_arns.name
   db_secret_arn   = module.rds.master_user_secret_arn
+  enable_observability      = true
+  amp_remote_write_endpoint = module.observability.remote_write_endpoint
 }
