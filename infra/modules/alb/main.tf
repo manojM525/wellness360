@@ -15,7 +15,7 @@ resource "aws_lb" "this" {
   subnets            = var.public_subnet_ids
   security_groups    = [var.alb_security_group_id]
 
-  deletion_protection = var.deletion_protection
+  enable_deletion_protection = var.alb_deletion_protection
 
   # NOTE: access logging to S3 is deliberately not implemented in this pass —
   # flagging it explicitly as a documented gap rather than a silent omission.

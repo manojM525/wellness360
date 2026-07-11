@@ -34,7 +34,7 @@ variable "health_check_path" {
   default     = "/actuator/health"
 }
 
-variable "deletion_protection" {
+variable "alb_deletion_protection" {
   description = "true for prod, false for dev — explicit, not inferred"
   type        = bool
 }

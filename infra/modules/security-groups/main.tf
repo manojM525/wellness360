@@ -18,7 +18,7 @@ locals {
 # ---------------------------------------------------------------------------
 resource "aws_security_group" "alb" {
   name        = "${local.name_prefix}-alb-sg"
-  description = "Internet-facing ALB — only SG in this stack that accepts traffic from 0.0.0.0/0"
+  description = "Internet-facing ALB  only SG in this stack that accepts traffic from 0.0.0.0/0"
   vpc_id      = var.vpc_id
 
   tags = merge(local.common_tags, { Name = "${local.name_prefix}-alb-sg" })
@@ -26,7 +26,7 @@ resource "aws_security_group" "alb" {
 
 resource "aws_security_group" "ecs_task" {
   name        = "${local.name_prefix}-ecs-task-sg"
-  description = "ECS Fargate tasks — accepts traffic only from the ALB, never directly from the internet"
+  description = "ECS Fargate tasks accepts traffic only from the ALB, never directly from the internet"
   vpc_id      = var.vpc_id
 
   tags = merge(local.common_tags, { Name = "${local.name_prefix}-ecs-task-sg" })
@@ -34,7 +34,7 @@ resource "aws_security_group" "ecs_task" {
 
 resource "aws_security_group" "rds" {
   name        = "${local.name_prefix}-rds-sg"
-  description = "RDS MySQL — accepts traffic only from the ECS task SG, no egress rules (RDS never initiates outbound)"
+  description = "RDS MySQL accepts traffic only from the ECS task SG, no egress rules (RDS never initiates outbound)"
   vpc_id      = var.vpc_id
 
   tags = merge(local.common_tags, { Name = "${local.name_prefix}-rds-sg" })
@@ -54,7 +54,7 @@ resource "aws_vpc_security_group_ingress_rule" "alb_https_in" {
 
 resource "aws_vpc_security_group_ingress_rule" "alb_http_in" {
   security_group_id = aws_security_group.alb.id
-  description       = "HTTP from the internet — listener rule redirects this to 443, never forwarded to targets"
+  description       = "HTTP from the internet  listener rule redirects this to 443, never forwarded to targets"
   cidr_ipv4         = "0.0.0.0/0"
   from_port         = 80
   to_port           = 80
@@ -75,7 +75,7 @@ resource "aws_vpc_security_group_egress_rule" "alb_to_ecs" {
 # ---------------------------------------------------------------------------
 resource "aws_vpc_security_group_ingress_rule" "ecs_from_alb" {
   security_group_id            = aws_security_group.ecs_task.id
-  description                  = "Only the ALB can reach the app port — no direct internet or peer-to-peer task access"
+  description                  = "Only the ALB can reach the app port no direct internet or peer-to-peer task access"
   referenced_security_group_id = aws_security_group.alb.id
   from_port                    = var.app_port
   to_port                      = var.app_port
@@ -93,7 +93,7 @@ resource "aws_vpc_security_group_egress_rule" "ecs_to_rds" {
 
 resource "aws_vpc_security_group_egress_rule" "ecs_https_out" {
   security_group_id = aws_security_group.ecs_task.id
-  description       = "HTTPS egress via NAT — ECR image pulls, AMP remote-write, CloudWatch Logs/Secrets Manager API calls"
+  description       = "HTTPS egress via NAT ECR image pulls, AMP remotewrite, CloudWatch Logs,Secrets Manager API calls"
   cidr_ipv4         = "0.0.0.0/0"
   from_port         = 443
   to_port           = 443

@@ -26,6 +26,10 @@ variable "target_group_arn" {
   type = string
 }
 
+variable "alb_arn" {
+  type = string
+}
+
 variable "execution_role_arn" {
   type = string
 }

@@ -171,7 +171,7 @@ resource "aws_appautoscaling_policy" "request_count" {
   target_tracking_scaling_policy_configuration {
     predefined_metric_specification {
       predefined_metric_type = "ALBRequestCountPerTarget"
-      resource_label         = replace(var.target_group_arn, "/^arn:aws:elasticloadbalancing:[^:]+:[^:]+:/", "")
+      resource_label = "${element(split("loadbalancer/", var.alb_arn), 1)}/${element(split(":", var.target_group_arn), 5)}"
     }
     target_value       = 1000
     scale_in_cooldown  = 120

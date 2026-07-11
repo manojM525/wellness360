@@ -52,7 +52,7 @@ resource "aws_iam_openid_connect_provider" "github" {
   # value against the actual cert chain for GitHub's provider, but the API
   # still requires a well-formed value here — confirm against GitHub's current
   # docs at deploy time in case it's rotated.
-  thumbprint_list = ["6938fd4d98bab03faadb97b34396831e3780aea"]
+  thumbprint_list = ["6938fd4d98bab03faadb97b34396831e3780aea1"]
 }
 
 locals {
