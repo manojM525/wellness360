@@ -54,6 +54,8 @@ RUN mvn clean package -DskipTests -B
 # =============================================================================
 FROM eclipse-temurin:17-jre-alpine
 
+RUN apk update && apk upgrade --no-cache
+
 # Non-root user: if the app is ever compromised (a dependency vuln, a
 # deserialization bug), the process should not have root inside its own
 # container. Fixed, non-default UID/GID rather than an arbitrary system
