@@ -155,12 +155,12 @@ jobs:
           CLUSTER: ${{ vars.DEV_ECS_CLUSTER }}
           SERVICE: ${{ vars.DEV_ECS_SERVICE }}
           TASK_FAMILY: ${{ vars.DEV_ECS_TASK_FAMILY }}
-        run: ./.github/scripts/deploy-ecs.sh
+        run: bash ./.github/scripts/deploy-ecs.sh
 
       - name: Smoke test
         env:
           APP_URL: ${{ vars.DEV_APP_URL }}
-        run: ./.github/scripts/smoke-test.sh
+        run: bash ./.github/scripts/smoke-test.sh
 
   # ---------------------------------------------------------------------------
   # Deploy to prod — triggered by pushes to main. The `environment: production`
@@ -188,12 +188,12 @@ jobs:
           CLUSTER: ${{ vars.PROD_ECS_CLUSTER }}
           SERVICE: ${{ vars.PROD_ECS_SERVICE }}
           TASK_FAMILY: ${{ vars.PROD_ECS_TASK_FAMILY }}
-        run: ./.github/scripts/deploy-ecs.sh
+        run: bash ./.github/scripts/deploy-ecs.sh
 
       - name: Smoke test
         env:
           APP_URL: ${{ vars.PROD_APP_URL }}
-        run: ./.github/scripts/smoke-test.sh
+        run: bash ./.github/scripts/smoke-test.sh
 
   # ---------------------------------------------------------------------------
   # Notification — runs regardless of outcome, tells you which one happened.
