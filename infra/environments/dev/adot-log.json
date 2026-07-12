@@ -1,0 +1,76 @@
+{
+    "events": [
+        {
+            "timestamp": 1783885518595,
+            "message": "2026/07/12 19:45:18 ADOT Collector version: v0.39.1",
+            "ingestionTime": 1783885523437
+        },
+        {
+            "timestamp": 1783885518689,
+            "message": "2026/07/12 19:45:18 found no extra config, skip it, err: open /opt/aws/aws-otel-collector/etc/extracfg.txt: no such file or directory",
+            "ingestionTime": 1783885523437
+        },
+        {
+            "timestamp": 1783885518689,
+            "message": "2026/07/12 19:45:18 attn: users of the `datadog`, `logzio`, `sapm`, `signalfx` exporter components. please refer to https://github.com/aws-observability/aws-otel-collector/issues/2734 in regards to an ADOT Collector v0.41.0 breaking change",
+            "ingestionTime": 1783885523437
+        },
+        {
+            "timestamp": 1783885518697,
+            "message": "2026-07-12T19:45:18.697Z\tinfo\tservice@v0.98.0/telemetry.go:55\tSetting up own telemetry...",
+            "ingestionTime": 1783885523437
+        },
+        {
+            "timestamp": 1783885518697,
+            "message": "2026-07-12T19:45:18.697Z\tinfo\tservice@v0.98.0/telemetry.go:97\tServing metrics\t{\"address\": \":8888\", \"level\": \"Basic\"}",
+            "ingestionTime": 1783885523437
+        },
+        {
+            "timestamp": 1783885518699,
+            "message": "2026-07-12T19:45:18.699Z\tinfo\tservice@v0.98.0/service.go:143\tStarting aws-otel-collector...\t{\"Version\": \"v0.39.1\", \"NumCPU\": 2}",
+            "ingestionTime": 1783885523437
+        },
+        {
+            "timestamp": 1783885518699,
+            "message": "2026-07-12T19:45:18.699Z\tinfo\textensions/extensions.go:34\tStarting extensions...",
+            "ingestionTime": 1783885523437
+        },
+        {
+            "timestamp": 1783885518699,
+            "message": "2026-07-12T19:45:18.699Z\tinfo\textensions/extensions.go:37\tExtension is starting...\t{\"kind\": \"extension\", \"name\": \"sigv4auth\"}",
+            "ingestionTime": 1783885523437
+        },
+        {
+            "timestamp": 1783885518699,
+            "message": "2026-07-12T19:45:18.699Z\tinfo\textensions/extensions.go:52\tExtension started.\t{\"kind\": \"extension\", \"name\": \"sigv4auth\"}",
+            "ingestionTime": 1783885523437
+        },
+        {
+            "timestamp": 1783885518700,
+            "message": "2026-07-12T19:45:18.700Z\tinfo\tprometheusreceiver@v0.98.0/metrics_receiver.go:272\tStarting discovery manager\t{\"kind\": \"receiver\", \"name\": \"prometheus\", \"data_type\": \"metrics\"}",
+            "ingestionTime": 1783885523437
+        },
+        {
+            "timestamp": 1783885518701,
+            "message": "2026-07-12T19:45:18.701Z\tinfo\tprometheusreceiver@v0.98.0/metrics_receiver.go:250\tScrape job added\t{\"kind\": \"receiver\", \"name\": \"prometheus\", \"data_type\": \"metrics\", \"jobName\": \"spring-boot-app\"}",
+            "ingestionTime": 1783885523437
+        },
+        {
+            "timestamp": 1783885518748,
+            "message": "2026-07-12T19:45:18.748Z\tinfo\tservice@v0.98.0/service.go:169\tEverything is ready. Begin running and processing data.",
+            "ingestionTime": 1783885523437
+        },
+        {
+            "timestamp": 1783885518748,
+            "message": "2026-07-12T19:45:18.748Z\twarn\tlocalhostgate/featuregate.go:63\tThe default endpoints for all servers in components will change to use localhost instead of 0.0.0.0 in a future version. Use the feature gate to preview the new default.\t{\"feature gate ID\": \"component.UseLocalHostAsDefaultHost\"}",
+            "ingestionTime": 1783885523437
+        },
+        {
+            "timestamp": 1783885518749,
+            "message": "2026-07-12T19:45:18.749Z\tinfo\tprometheusreceiver@v0.98.0/metrics_receiver.go:326\tStarting scrape manager\t{\"kind\": \"receiver\", \"name\": \"prometheus\", \"data_type\": \"metrics\"}",
+            "ingestionTime": 1783885523437
+        }
+    ],
+    "nextForwardToken": "f/39781976416970071657557254107835823779296010789303353357/s",
+    "nextBackwardToken": "b/39781976413535756896983538144039323165308163117382369280/s"
+}
