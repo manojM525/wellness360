@@ -131,44 +131,7 @@ resource "aws_ecs_task_definition" "app" {
   execution_role_arn       = var.execution_role_arn
   task_role_arn            = var.task_role_arn
 
-  container_definitions = jsonencode([
-    {
-      name      = local.container_name
-      image     = "${var.ecr_repository_url}:${var.image_tag}"
-      essential = true
-
-      portMappings = [
-        {
-          containerPort = var.container_port
-          protocol      = "tcp"
-        }
-      ]
-
-      # Non-secret DB config via SSM Parameter Store, credentials via the
-      # RDS-managed Secrets Manager secret (JSON-key syntax pulls just the
-      # field needed, never the whole secret blob, into a single env var).
-      secrets = [
-        { name = "DB_HOST", valueFrom = var.db_host_ssm_arn },
-        { name = "DB_PORT", valueFrom = var.db_port_ssm_arn },
-        { name = "DB_NAME", valueFrom = var.db_name_ssm_arn },
-        { name = "DB_USERNAME", valueFrom = "${var.db_secret_arn}:username::" },
-        { name = "DB_PASSWORD", valueFrom = "${var.db_secret_arn}:password::" },
-      ]
-
-      environment = [
-        { name = "SPRING_PROFILES_ACTIVE", value = var.environment }
-      ]
-
-      logConfiguration = {
-        logDriver = "awslogs"
-        options = {
-          "awslogs-group"         = aws_cloudwatch_log_group.app.name
-          "awslogs-region"        = data.aws_region.current.name
-          "awslogs-stream-prefix" = "ecs"
-        }
-      }
-    }
-  ])
+  container_definitions = jsonencode(local.container_definitions)
 
   tags = merge(local.common_tags, { Name = "${local.name_prefix}-app-taskdef" })
 }
