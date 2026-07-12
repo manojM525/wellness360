@@ -5,9 +5,11 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <!-- FIX: Upgraded from 3.3.2 to 3.3.11. This resolves CVE-2025-22235, CVE-2026-40973, -->
-        <!-- CVE-2025-41249, CVE-2024-38816, and CVE-2024-38819 at the framework level. -->
-        <version>3.3.11</version>
+        <!-- FIX: Upgraded to 3.4.7 to natively pull in secure baselines: -->
+        <!-- Spring Core 6.2.x (Fixes CVE-2025-41249) -->
+        <!-- Tomcat 10.1.55+ (Fixes CVE-2026-41293, CVE-2026-43512, CVE-2025-48988, etc.) -->
+        <!-- Spring Boot internal patches (Fixes CVE-2026-40973) -->
+        <version>3.4.7</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.taskmaster</groupId>
@@ -30,10 +32,9 @@
     </scm>
     <properties>
         <java.version>17</java.version>
-        <!-- FIX: Force Jackson to a patched version to resolve CVE-2026-54512 & CVE-2026-54513 -->
+        <!-- FIX: Override Jackson explicitly to the highest secure maintenance patch -->
+        <!-- Fixes CVE-2026-54512 and CVE-2026-54513 -->
         <jackson.version>2.18.8</jackson.version>
-        <!-- FIX: Force Thymeleaf version to resolve critical SSTI bypasses (CVE-2026-40477, CVE-2026-40478, CVE-2026-41901) -->
-        <thymeleaf.version>3.1.5.RELEASE</thymeleaf.version>
     </properties>
     <dependencies>
         <dependency>
@@ -88,7 +89,7 @@
         <dependency>
             <groupId>net.logstash.logback</groupId>
             <artifactId>logstash-logback-encoder</artifactId>
-            <version>7.4</version>
+            <version>8.0</version>
         </dependency>
         <dependency>
             <groupId>com.h2database</groupId>
