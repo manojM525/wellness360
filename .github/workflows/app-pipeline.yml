@@ -118,7 +118,7 @@ jobs:
       - name: Scan image (Trivy)
         uses: aquasecurity/trivy-action@v0.24.0
         with:
-          image-ref: ${{ steps.ecr-login.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:${{ steps.vars.outputs.image_tag }}
+          image-ref: 'docker://${{ steps.ecr-login.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:${{ steps.vars.outputs.image_tag }}'
           severity: HIGH,CRITICAL
           exit-code: '1' # fail the build — a HIGH/CRITICAL finding blocks the push entirely, it's not advisory
           ignore-unfixed: true # no fix available yet = nothing actionable today; still worth periodic manual review, just not a hard gate
