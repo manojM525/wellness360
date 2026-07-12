@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Taskmaster</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <h1>Taskmaster</h1>
+      <span class="tagline">Spring Boot &middot; ECS Fargate &middot; RDS MySQL</span>
+    </div>
+  </header>
+
+  <main class="container">
+    <form id="add-task-form" class="add-task-form">
+      <input type="text" id="task-title" placeholder="Task title" required />
+      <input type="text" id="task-description" placeholder="Description (optional)" />
+      <button type="submit">Add Task</button>
+    </form>
+
+    <div id="error-banner" class="error-banner hidden"></div>
+
+    <section class="board">
+      <div class="column" data-status="TODO">
+        <h2>To Do <span class="count" id="count-TODO">0</span></h2>
+        <div class="cards" id="cards-TODO"></div>
+      </div>
+      <div class="column" data-status="IN_PROGRESS">
+        <h2>In Progress <span class="count" id="count-IN_PROGRESS">0</span></h2>
+        <div class="cards" id="cards-IN_PROGRESS"></div>
+      </div>
+      <div class="column" data-status="DONE">
+        <h2>Done <span class="count" id="count-DONE">0</span></h2>
+        <div class="cards" id="cards-DONE"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span id="health-dot" class="health-dot"></span>
+    <span id="health-text">Checking API health…</span>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
