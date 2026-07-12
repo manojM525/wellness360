@@ -178,7 +178,7 @@ resource "aws_ecs_service" "app" {
   deployment_maximum_percent         = 200 # can briefly run double capacity during a deploy
   deployment_minimum_healthy_percent = 100 # never drop below current capacity mid-deploy
 
-  health_check_grace_period_seconds = 30 # give the JVM a moment to actually start before the ALB's health check can fail it
+  health_check_grace_period_seconds = 90 # give the JVM a moment to actually start before the ALB's health check can fail it
 
   # See the design note above this module: CI owns which revision is
   # running after the first apply; Application Auto Scaling owns the count.

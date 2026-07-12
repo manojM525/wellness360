@@ -85,5 +85,5 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
 # for graceful shutdown. The shell form (`CMD java -jar app.jar`) would run
 # java as a child of a shell process, which can swallow or delay signal
 # forwarding during container stop — the kind of thing that turns a clean
-# ECS deployment drain into a hard-killed connection instead
+# ECS deployment drain into a hard-killed connection instead.
 ENTRYPOINT ["java", "-jar", "app.jar"]

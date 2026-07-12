@@ -24,8 +24,8 @@ alb_deletion_protection = false
 
 # ECS: dev is small and cost-optimized, uses Fargate Spot since a demo
 # environment can tolerate the rare Spot interruption; prod will not.
-task_cpu                 = 512
-task_memory               = 1024
+task_cpu                 = 1024
+task_memory               = 2048
 desired_count             = 1
 autoscaling_min_capacity  = 1
 autoscaling_max_capacity  = 2
