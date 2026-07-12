@@ -20,19 +20,19 @@ function clearError() {
 // re-deriving /tasks/{id} ourselves, so this stays correct even if the
 // underlying URL structure changes.
 async function fetchTasks() {
-  const res = await fetch("/tasks?size=200");
-  if (!res.ok) throw new Error(`GET /tasks failed: ${res.status}`);
+  const res = await fetch("/api/tasks?size=200");
+  if (!res.ok) throw new Error(`GET /api/tasks failed: ${res.status}`);
   const body = await res.json();
   return body._embedded ? body._embedded.tasks : [];
 }
 
 async function createTask(title, description) {
-  const res = await fetch("/tasks", {
+  const res = await fetch("/api/tasks", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ title, description, status: "TODO" }),
   });
-  if (!res.ok) throw new Error(`POST /tasks failed: ${res.status}`);
+  if (!res.ok) throw new Error(`POST /api/tasks failed: ${res.status}`);
 }
 
 async function updateTaskStatus(selfHref, newStatus) {

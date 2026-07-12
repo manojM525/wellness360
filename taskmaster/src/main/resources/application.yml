@@ -25,6 +25,18 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
 
+  data:
+    rest:
+      # Moves the entire Spring Data REST auto-exposed API (collection
+      # resource, item resources, and its root HAL discovery document) off
+      # "/" and onto "/api". Without this, Spring Data REST's root handler
+      # binds to "/" at higher routing precedence than Spring Boot's static
+      # welcome-page handler, so index.html in src/main/resources/static/
+      # never gets served — the browser always hit the HAL JSON instead.
+      # /api/tasks now replaces the old bare /tasks; /actuator/* is untouched
+      # since Actuator manages its own, separate base-path.
+      base-path: /api
+
 management:
   endpoints:
     web:
