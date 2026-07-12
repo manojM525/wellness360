@@ -10,8 +10,10 @@ name: App Build & Deploy
 on:
   push:
     branches: [develop, main]
+    paths: ['taskmaster/**', '.github/workflows/app-pipeline.yml']
   pull_request:
     branches: [develop, main]
+    paths: ['taskmaster/**', '.github/workflows/app-pipeline.yml']
 
 # Required repo Variables (Settings > Secrets and variables > Actions > Variables):
 #   AWS_REGION              e.g. us-east-1
@@ -38,6 +40,9 @@ jobs:
   test:
     name: Lint & Test
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: taskmaster # pom.xml lives here, not at repo root, in this monorepo layout
     steps:
       - uses: actions/checkout@v4
 
@@ -46,6 +51,7 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: maven
+          cache-dependency-path: taskmaster/pom.xml
 
       # NOTE: no static analysis step (Checkstyle/Spotless) is configured —
       # the pom.xml doesn't declare one. Flagging this as an honest gap
@@ -61,7 +67,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: surefire-reports
-          path: target/surefire-reports/
+          path: taskmaster/target/surefire-reports/
           retention-days: 14
 
   # ---------------------------------------------------------------------------
@@ -102,7 +108,7 @@ jobs:
       - name: Build image (local)
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: ./taskmaster
           push: false
           load: true
           tags: ${{ steps.ecr-login.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:${{ steps.vars.outputs.image_tag }}
@@ -121,7 +127,7 @@ jobs:
         if: success() # only reachable if the scan passed
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: ./taskmaster
           push: true
           tags: ${{ steps.ecr-login.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:${{ steps.vars.outputs.image_tag }}
           cache-from: type=gha
