@@ -5,8 +5,9 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <!-- FIX: Upgraded parent to 3.4.16+ to natively address the core framework bug (CVE-2026-40973) -->
-        <version>3.4.16</version>
+        <!-- Upgrading natively to 3.5.1 pulls in safe defaults for Tomcat 10.1.x, -->
+        <!-- Spring Framework 6.2.x, and fixes framework-level bugs natively. -->
+        <version>3.5.1</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.taskmaster</groupId>
@@ -14,38 +15,13 @@
     <version>0.0.1-SNAPSHOT</version>
     <name>Task Management System</name>
     <description>Internship Case Study Project for Task Management System using Spring Boot</description>
-    <url/>
-    <licenses>
-        <license/>
-    </licenses>
-    <developers>
-        <developer/>
-    </developers>
-    <scm>
-        <connection/>
-        <developerConnection/>
-        <tag/>
-        <url/>
-    </scm>
+    
     <properties>
         <java.version>17</java.version>
-        
-        <!-- FIX: Force Tomcat to 10.1.55 to resolve all 13 critical & high embedded server CVEs -->
-        <!-- This fixes CVE-2026-41293, CVE-2026-43512, CVE-2025-48989, and directory traversals -->
-        <tomcat.version>10.1.55</tomcat.version>
-
-        <!-- FIX: Forces compilation to patch the Jackson Polymorphic Type Validator bypasses -->
-        <!-- Resolves CVE-2026-54512 and CVE-2026-54513 -->
+        <!-- Safe, targeted property override that doesn't break Spring's internal classpath -->
         <jackson.version>2.18.8</jackson.version>
-
-        <!-- FIX: Force Spring Core past 6.2.11 to fix the Annotation Detection vulnerability -->
-        <!-- Resolves CVE-2025-41249 -->
-        <spring-framework.version>6.2.11</spring-framework.version>
-
-        <!-- FIX: Override Thymeleaf core and layout versions to resolve critical Server-Side Template Injections -->
-        <!-- Resolves CVE-2026-40477, CVE-2026-40478, and CVE-2026-41901 -->
-        <thymeleaf.version>3.1.5.RELEASE</thymeleaf.version>
     </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
