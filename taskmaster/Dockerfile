@@ -2,7 +2,7 @@
 
 # =============================================================================
 # STAGE 1: build
-# -----------------------------------------------------------------------------
+# =============================================================================
 # Official Maven image bundling Eclipse Temurin 17 (matches pom.xml's
 # <java.version>17</java.version> and the parent's target). This stage
 # contains a full JDK + Maven + build-time tooling — none of it belongs in
@@ -35,7 +35,7 @@ RUN mvn clean package -DskipTests -B
 
 # =============================================================================
 # STAGE 2: runtime
-# -----------------------------------------------------------------------------
+# =============================================================================
 # JRE-only, Alpine-based. Two decisions bundled here, both worth defending:
 #
 # JRE vs JDK: the running container never compiles anything — it only
@@ -52,7 +52,9 @@ RUN mvn clean package -DskipTests -B
 # app later added a native dependency with known musl issues, jre-jammy
 # would be the safer default and the size trade-off would be worth it.
 # =============================================================================
-FROM eclipse-temurin:17-jre-alpine AS runtime
+FROM eclipse-temurin:17-jre-alpine
+
+RUN apk update && apk upgrade --no-cache
 
 # Non-root user: if the app is ever compromised (a dependency vuln, a
 # deserialization bug), the process should not have root inside its own

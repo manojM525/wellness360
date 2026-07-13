@@ -77,7 +77,3 @@ output "ecs_task_definition_family" {
 output "amp_workspace_id" {
   value = module.observability.workspace_id
 }
-
-output "remote_write_endpoint" {
-  value = module.observability.remote_write_endpoint
-}

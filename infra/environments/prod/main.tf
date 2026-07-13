@@ -3,7 +3,7 @@ data "aws_caller_identity" "current" {}
 locals {
   # Built once, used by both ecs_iam (grants read access) and ecs_service
   # (references the same ARNs when injecting env vars) — avoids repeating
-  # this interpolation three times across two module blocks
+  # this interpolation three times across two module blocks.
   ssm_db_arns = {
     host = "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter${module.rds.ssm_db_host_param_name}"
     port = "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter${module.rds.ssm_db_port_param_name}"
@@ -24,10 +24,9 @@ module "network" {
   private_app_subnet_cidrs  = var.private_app_subnet_cidrs
   private_data_subnet_cidrs = var.private_data_subnet_cidrs
 
-  # dev: single NAT Gateway — cost-optimized, accepted trade-off is that if
-  # the AZ holding the NAT has an issue, private-app subnets in the OTHER AZ
-  # also lose internet egress. Documented risk, not an oversight
-  single_nat_gateway = true
+  # prod: one NAT Gateway per AZ — full AZ independence for egress, the
+  # opposite trade-off from dev's cost-optimized single NAT.
+  single_nat_gateway = false
 }
 
 module "security_groups" {
@@ -44,7 +43,7 @@ module "acm_dns" {
   source = "../../modules/acm-dns"
 
   domain_name = var.domain_name
-  subdomain   = "dev" # -> dev.taskmaster-devops.example.com
+  subdomain   = "" # empty -> root domain, e.g. taskmaster-devops.example.com
   environment = var.environment
 }
 
@@ -84,10 +83,11 @@ module "alb" {
   project_name = var.project_name
   environment  = var.environment
 
-  vpc_id                  = module.network.vpc_id
-  public_subnet_ids       = module.network.public_subnet_ids
-  alb_security_group_id   = module.security_groups.alb_security_group_id
-  certificate_arn         = module.acm_dns.certificate_arn
+  vpc_id                = module.network.vpc_id
+  public_subnet_ids     = module.network.public_subnet_ids
+  alb_security_group_id = module.security_groups.alb_security_group_id
+  certificate_arn       = module.acm_dns.certificate_arn
+
   alb_deletion_protection = var.alb_deletion_protection
 }
 
@@ -177,10 +177,11 @@ module "ecs_service" {
 
   log_retention_days = var.log_retention_days
 
-  db_host_ssm_arn           = local.ssm_db_arns.host
-  db_port_ssm_arn           = local.ssm_db_arns.port
-  db_name_ssm_arn           = local.ssm_db_arns.name
-  db_secret_arn             = module.rds.master_user_secret_arn
+  db_host_ssm_arn = local.ssm_db_arns.host
+  db_port_ssm_arn = local.ssm_db_arns.port
+  db_name_ssm_arn = local.ssm_db_arns.name
+  db_secret_arn   = module.rds.master_user_secret_arn
+
   enable_observability      = true
   amp_remote_write_endpoint = module.observability.remote_write_endpoint
 }

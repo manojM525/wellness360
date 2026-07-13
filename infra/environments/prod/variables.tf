@@ -55,8 +55,7 @@ variable "db_skip_final_snapshot" {
 }
 
 variable "alb_deletion_protection" {
-  type    = bool
-  default = false
+  type = bool
 }
 
 variable "task_cpu" {

@@ -131,44 +131,7 @@ resource "aws_ecs_task_definition" "app" {
   execution_role_arn       = var.execution_role_arn
   task_role_arn            = var.task_role_arn
 
-  container_definitions = jsonencode([
-    {
-      name      = local.container_name
-      image     = "${var.ecr_repository_url}:${var.image_tag}"
-      essential = true
-
-      portMappings = [
-        {
-          containerPort = var.container_port
-          protocol      = "tcp"
-        }
-      ]
-
-      # Non-secret DB config via SSM Parameter Store, credentials via the
-      # RDS-managed Secrets Manager secret (JSON-key syntax pulls just the
-      # field needed, never the whole secret blob, into a single env var).
-      secrets = [
-        { name = "DB_HOST", valueFrom = var.db_host_ssm_arn },
-        { name = "DB_PORT", valueFrom = var.db_port_ssm_arn },
-        { name = "DB_NAME", valueFrom = var.db_name_ssm_arn },
-        { name = "DB_USERNAME", valueFrom = "${var.db_secret_arn}:username::" },
-        { name = "DB_PASSWORD", valueFrom = "${var.db_secret_arn}:password::" },
-      ]
-
-      environment = [
-        { name = "SPRING_PROFILES_ACTIVE", value = var.environment }
-      ]
-
-      logConfiguration = {
-        logDriver = "awslogs"
-        options = {
-          "awslogs-group"         = aws_cloudwatch_log_group.app.name
-          "awslogs-region"        = data.aws_region.current.name
-          "awslogs-stream-prefix" = "ecs"
-        }
-      }
-    }
-  ])
+  container_definitions = jsonencode(local.container_definitions)
 
   tags = merge(local.common_tags, { Name = "${local.name_prefix}-app-taskdef" })
 }
@@ -215,7 +178,7 @@ resource "aws_ecs_service" "app" {
   deployment_maximum_percent         = 200 # can briefly run double capacity during a deploy
   deployment_minimum_healthy_percent = 100 # never drop below current capacity mid-deploy
 
-  health_check_grace_period_seconds = 30 # give the JVM a moment to actually start before the ALB's health check can fail it
+  health_check_grace_period_seconds = 90 # give the JVM a moment to actually start before the ALB's health check can fail it
 
   # See the design note above this module: CI owns which revision is
   # running after the first apply; Application Auto Scaling owns the count.
@@ -268,7 +231,7 @@ resource "aws_appautoscaling_policy" "request_count" {
   target_tracking_scaling_policy_configuration {
     predefined_metric_specification {
       predefined_metric_type = "ALBRequestCountPerTarget"
-      resource_label = "${element(split("loadbalancer/", var.alb_arn), 1)}/${element(split(":", var.target_group_arn), 5)}"
+      resource_label         = "${element(split("loadbalancer/", var.alb_arn), 1)}/${element(split(":", var.target_group_arn), 5)}"
     }
     target_value       = 1000
     scale_in_cooldown  = 120

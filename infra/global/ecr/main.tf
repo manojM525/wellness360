@@ -31,7 +31,7 @@ variable "project_name" {
 variable "github_actions_role_arn" {
   description = "ARN of the GitHub OIDC-federated IAM role that CI uses to push images (built in the iam module — passed in here once that role exists)"
   type        = string
-  default = "arn:aws:iam::329769990983:role/manoj-taskmaster-github-deploy-role"
+  default     = "arn:aws:iam::329769990983:role/manoj-taskmaster-github-deploy-role"
 }
 
 variable "image_count_to_keep" {

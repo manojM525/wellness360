@@ -28,12 +28,12 @@ variable "project_name" {
 }
 
 variable "github_org" {
-  type = string
+  type    = string
   default = "manojM525"
 }
 
 variable "github_repo" {
-  type = string
+  type    = string
   default = "wellness360"
 }
 
@@ -46,8 +46,8 @@ data "aws_caller_identity" "current" {}
 # one (e.g. from a prior project), this resource would conflict — check first.
 # ---------------------------------------------------------------------------
 resource "aws_iam_openid_connect_provider" "github" {
-  url             = "https://token.actions.githubusercontent.com"
-  client_id_list  = ["sts.amazonaws.com"]
+  url            = "https://token.actions.githubusercontent.com"
+  client_id_list = ["sts.amazonaws.com"]
   # GitHub's OIDC root CA thumbprint. AWS no longer strictly validates this
   # value against the actual cert chain for GitHub's provider, but the API
   # still requires a well-formed value here — confirm against GitHub's current
@@ -56,15 +56,43 @@ resource "aws_iam_openid_connect_provider" "github" {
 }
 
 locals {
-  # Scope trust to specific branches only — main (-> prod) and develop (-> dev).
-  # A StringLike condition on `sub` with these exact values means a workflow
-  # run from any other branch, or a fork's PR, cannot assume either role.
-  allowed_subjects = [
-    "repo:${var.github_org}/${var.github_repo}:ref:refs/heads/main",
-    "repo:${var.github_org}/${var.github_repo}:ref:refs/heads/develop",
+  # ---------------------------------------------------------------------------
+  # THE SUBJECT-SHAPE PROBLEM, SOLVED PROPERLY.
+  #
+  # GitHub's OIDC token `sub` claim is NOT a single consistent shape — it
+  # depends on the trigger and on whether the job declares `environment:`:
+  #
+  #   push/no environment  -> repo:{org}/{repo}:ref:refs/heads/{branch}
+  #   pull_request          -> repo:{org}/{repo}:pull_request
+  #   job has `environment:` -> repo:{org}/{repo}:environment:{env_name}
+  #                              (this OVERRIDES the ref/pull_request shape
+  #                               entirely — it doesn't add to it)
+  #
+  # Each role below is scoped to exactly the subject shapes the jobs that
+  # actually assume it will present — not a shared, one-size-fits-all list.
+  # This is tighter than the original single shared policy: the plan job's
+  # trust doesn't leak into the deploy role's trust, and vice versa.
+  # ---------------------------------------------------------------------------
+
+  # terraform_apply is assumed by: the PR `plan` job (pull_request trigger,
+  # no environment) and `apply-dev`/`apply-prod` (push trigger, but the
+  # `environment:` line means the sub is environment-shaped, not ref-shaped).
+  terraform_apply_subjects = [
+    "repo:${var.github_org}/${var.github_repo}:pull_request",
+    "repo:${var.github_org}/${var.github_repo}:environment:development",
+    "repo:${var.github_org}/${var.github_repo}:environment:production",
   ]
 
-  oidc_trust_policy = jsonencode({
+  # deploy is assumed by: build-and-push (push trigger, no environment set on
+  # that job -> ref-shaped) and deploy-dev/deploy-prod (environment-shaped).
+  deploy_subjects = [
+    "repo:${var.github_org}/${var.github_repo}:ref:refs/heads/develop",
+    "repo:${var.github_org}/${var.github_repo}:ref:refs/heads/main",
+    "repo:${var.github_org}/${var.github_repo}:environment:development",
+    "repo:${var.github_org}/${var.github_repo}:environment:production",
+  ]
+
+  terraform_apply_trust_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
@@ -76,7 +104,26 @@ locals {
             "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
           }
           StringLike = {
-            "token.actions.githubusercontent.com:sub" = local.allowed_subjects
+            "token.actions.githubusercontent.com:sub" = local.terraform_apply_subjects
+          }
+        }
+      }
+    ]
+  })
+
+  deploy_trust_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect    = "Allow"
+        Principal = { Federated = aws_iam_openid_connect_provider.github.arn }
+        Action    = "sts:AssumeRoleWithWebIdentity"
+        Condition = {
+          StringEquals = {
+            "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
+          }
+          StringLike = {
+            "token.actions.githubusercontent.com:sub" = local.deploy_subjects
           }
         }
       }
@@ -97,7 +144,7 @@ locals {
 # ---------------------------------------------------------------------------
 resource "aws_iam_role" "terraform_apply" {
   name               = "${var.project_name}-github-terraform-role"
-  assume_role_policy = local.oidc_trust_policy
+  assume_role_policy = local.terraform_apply_trust_policy
 }
 
 resource "aws_iam_role_policy" "terraform_apply" {
@@ -120,6 +167,8 @@ resource "aws_iam_role_policy" "terraform_apply" {
           "ssm:*",
           "secretsmanager:*",
           "route53:*",
+          "aps:*",
+          "kms:*",
           "acm:*",
           "application-autoscaling:*",
           "cloudwatch:*",
@@ -183,7 +232,7 @@ resource "aws_iam_role_policy" "terraform_apply" {
 # ---------------------------------------------------------------------------
 resource "aws_iam_role" "deploy" {
   name               = "${var.project_name}-github-deploy-role"
-  assume_role_policy = local.oidc_trust_policy
+  assume_role_policy = local.deploy_trust_policy
 }
 
 resource "aws_iam_role_policy" "deploy" {

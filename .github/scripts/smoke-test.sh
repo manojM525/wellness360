@@ -34,7 +34,9 @@ check "/actuator/health" '"status":"UP"'
 
 # Then a real business endpoint — health passing doesn't guarantee the actual
 # API (and its DB connection) works; this hits the Spring Data REST
-# auto-exposed collection endpoint directly.
-check "/tasks" '"_links"'
+# auto-exposed collection endpoint directly. Path moved from /tasks to
+# /api/tasks when spring.data.rest.base-path was set, freeing "/" for the
+# static UI's index.html.
+check "/api/tasks" '"_links"'
 
 echo "Smoke tests passed."
