@@ -167,6 +167,8 @@ resource "aws_iam_role_policy" "terraform_apply" {
           "ssm:*",
           "secretsmanager:*",
           "route53:*",
+          "aps:*",
+          "kms:*",
           "acm:*",
           "application-autoscaling:*",
           "cloudwatch:*",

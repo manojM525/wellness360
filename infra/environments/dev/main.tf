@@ -26,7 +26,7 @@ module "network" {
 
   # dev: single NAT Gateway — cost-optimized, accepted trade-off is that if
   # the AZ holding the NAT has an issue, private-app subnets in the OTHER AZ
-  # also lose internet egress. Documented risk, not an oversight.
+  # also lose internet egress. Documented risk, not an oversight
   single_nat_gateway = true
 }
 
