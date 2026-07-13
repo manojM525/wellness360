@@ -3,7 +3,7 @@ data "aws_caller_identity" "current" {}
 locals {
   # Built once, used by both ecs_iam (grants read access) and ecs_service
   # (references the same ARNs when injecting env vars) — avoids repeating
-  # this interpolation three times across two module blocks.
+  # this interpolation three times across two module blocks
   ssm_db_arns = {
     host = "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter${module.rds.ssm_db_host_param_name}"
     port = "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter${module.rds.ssm_db_port_param_name}"
