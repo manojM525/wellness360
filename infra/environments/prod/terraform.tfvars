@@ -31,9 +31,9 @@ alb_deletion_protection = true
 # Sizing bumped over dev's for real headroom, same reasoning as the earlier
 # dev bump for the ADOT sidecar, just with more room for actual traffic.
 task_cpu                 = 1024
-task_memory               = 2048
-desired_count             = 2
-autoscaling_min_capacity  = 2
-autoscaling_max_capacity  = 4
-use_fargate_spot          = false
-log_retention_days        = 30
+task_memory              = 2048
+desired_count            = 2
+autoscaling_min_capacity = 2
+autoscaling_max_capacity = 4
+use_fargate_spot         = false
+log_retention_days       = 30

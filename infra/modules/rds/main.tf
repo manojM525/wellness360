@@ -22,9 +22,9 @@ resource "aws_db_instance" "this" {
   engine_version = var.engine_version
   instance_class = var.instance_class
 
-  allocated_storage     = var.allocated_storage
-  storage_type          = "gp3"
-  storage_encrypted     = true # encryption at rest — non-negotiable for any RDS instance holding app data
+  allocated_storage = var.allocated_storage
+  storage_type      = "gp3"
+  storage_encrypted = true # encryption at rest — non-negotiable for any RDS instance holding app data
 
   db_name  = var.db_name
   username = var.master_username
@@ -42,7 +42,7 @@ resource "aws_db_instance" "this" {
   vpc_security_group_ids = [var.security_group_id]
   publicly_accessible    = false # non-negotiable — reinforced further by the private-data route table having no internet route at all
 
-  backup_retention_period = var.backup_retention_period
+  backup_retention_period    = var.backup_retention_period
   auto_minor_version_upgrade = true
   copy_tags_to_snapshot      = true
 

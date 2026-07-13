@@ -59,7 +59,7 @@ resource "aws_iam_role_policy_attachment" "prometheus_query" {
 }
 
 resource "aws_iam_role_policy_attachment" "cloudwatch_access" {
-  role       = aws_iam_role.grafana.name
+  role = aws_iam_role.grafana.name
   # CORRECTED: the original ARN here (AmazonGrafanaCloudWatchAccess) does not
   # exist — it was a fabricated policy name and failed on a real apply with
   # NoSuchEntity. CloudWatchReadOnlyAccess is a real, standard AWS managed

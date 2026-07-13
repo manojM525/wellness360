@@ -84,10 +84,10 @@ module "alb" {
   project_name = var.project_name
   environment  = var.environment
 
-  vpc_id             = module.network.vpc_id
-  public_subnet_ids  = module.network.public_subnet_ids
-  alb_security_group_id = module.security_groups.alb_security_group_id
-  certificate_arn    = module.acm_dns.certificate_arn
+  vpc_id                  = module.network.vpc_id
+  public_subnet_ids       = module.network.public_subnet_ids
+  alb_security_group_id   = module.security_groups.alb_security_group_id
+  certificate_arn         = module.acm_dns.certificate_arn
   alb_deletion_protection = var.alb_deletion_protection
 }
 
@@ -161,7 +161,7 @@ module "ecs_service" {
   alb_arn                    = module.alb.alb_arn
 
   execution_role_arn = module.ecs_iam.execution_role_arn
-  task_role_arn       = module.ecs_iam.task_role_arn
+  task_role_arn      = module.ecs_iam.task_role_arn
 
   ecr_repository_url = data.aws_ecr_repository.app.repository_url
   # image_tag left at module default ("initial") — CI takes ownership of the
@@ -177,10 +177,10 @@ module "ecs_service" {
 
   log_retention_days = var.log_retention_days
 
-  db_host_ssm_arn = local.ssm_db_arns.host
-  db_port_ssm_arn = local.ssm_db_arns.port
-  db_name_ssm_arn = local.ssm_db_arns.name
-  db_secret_arn   = module.rds.master_user_secret_arn
+  db_host_ssm_arn           = local.ssm_db_arns.host
+  db_port_ssm_arn           = local.ssm_db_arns.port
+  db_name_ssm_arn           = local.ssm_db_arns.name
+  db_secret_arn             = module.rds.master_user_secret_arn
   enable_observability      = true
   amp_remote_write_endpoint = module.observability.remote_write_endpoint
 }

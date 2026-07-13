@@ -28,12 +28,12 @@ variable "project_name" {
 }
 
 variable "github_org" {
-  type = string
+  type    = string
   default = "manojM525"
 }
 
 variable "github_repo" {
-  type = string
+  type    = string
   default = "wellness360"
 }
 
@@ -46,8 +46,8 @@ data "aws_caller_identity" "current" {}
 # one (e.g. from a prior project), this resource would conflict — check first.
 # ---------------------------------------------------------------------------
 resource "aws_iam_openid_connect_provider" "github" {
-  url             = "https://token.actions.githubusercontent.com"
-  client_id_list  = ["sts.amazonaws.com"]
+  url            = "https://token.actions.githubusercontent.com"
+  client_id_list = ["sts.amazonaws.com"]
   # GitHub's OIDC root CA thumbprint. AWS no longer strictly validates this
   # value against the actual cert chain for GitHub's provider, but the API
   # still requires a well-formed value here — confirm against GitHub's current

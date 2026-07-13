@@ -55,7 +55,7 @@ variable "db_skip_final_snapshot" {
 }
 
 variable "alb_deletion_protection" {
-  type = bool
+  type    = bool
   default = false
 }
 
