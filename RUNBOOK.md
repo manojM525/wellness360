@@ -1,12 +1,12 @@
 # Taskmaster Platform — Operator Runbook
 
 This document is written so that someone who has never seen this repository
-before can clone it and stand up the entire system — dev and prod, infra,
-CI/CD, and observability — **entirely through the two GitHub Actions
+before can clone it and stand up the entire system -- dev and prod, infra,
+CI/CD, and observability -- **entirely through the two GitHub Actions
 pipelines**, without hitting any of the issues that were found and fixed
 during the original build. Follow it top to bottom, in order. The only
 Terraform ever run from a laptop is the handful of one-time global stacks in
-Section 4 — everything environment-specific (dev, prod) is created and
+Section 4. Everything environment-specific (dev, prod) is created and
 deployed by pushing to a branch and watching CI do it, exactly as a reviewer
 evaluating this project should expect.
 
@@ -15,7 +15,7 @@ evaluating this project should expect.
 **Project name prefix**: `manoj-taskmaster`
 
 Throughout this document, `<your-registered-domain>` means a domain you
-actually own — substitute it everywhere it appears.
+actually own, substitute it everywhere it appears.
 
 ---
 
@@ -56,14 +56,14 @@ with **no dependency on each other**. Both can trigger off the same push (a
 push to `develop` touching both `infra/**` and `taskmaster/**`, for example),
 and GitHub Actions runs them in parallel with no awareness that one logically
 needs the other to finish first. Sections 6 and 7 below exist specifically to
-manage that — read them carefully rather than skimming, especially the first
+manage that read them carefully rather than skimming, especially the first
 time you bring up each environment.
 
 ### The Global vs. Per-Environment split
 
 Not everything lives inside `environments/dev`/`environments/prod`. Five
 stacks are shared across both environments, applied **once, manually**, each
-in its own separate Terraform state — these are the only manual `terraform
+in its own separate Terraform state.These are the only manual `terraform
 apply` commands in this entire runbook:
 
 | Location | Creates | Why it's global |
@@ -75,10 +75,10 @@ apply` commands in this entire runbook:
 | `infra/global/observability/` | AMG (Grafana) workspace | One dashboard pane across both environments |
 
 Everything else — VPC, security groups, ACM cert, RDS, ECS cluster/service,
-per-environment IAM (task execution/task roles), AMP workspace — lives in
+per-environment IAM (task execution/task roles), AMP workspace lives in
 `infra/environments/dev/` and `infra/environments/prod/`. **These two are
 created by the pipeline** (`infra-pipeline.yml`'s `apply-dev`/`apply-prod`
-jobs), triggered by pushing/merging to `develop`/`main` — not by running
+jobs), triggered by pushing/merging to `develop`/`main` , not by running
 Terraform locally. This is the part that differs from a naive "just run
 terraform apply everywhere" approach, and it's the point of this runbook.
 
@@ -102,7 +102,7 @@ bootstrap → global/dns → global/iam-ci → global/ecr → global/observabili
 - A registered domain, either directly in Route53 or elsewhere with NS
   records pointable at a Route53 zone.
 - **AWS IAM Identity Center (SSO) enabled** on the account *before* attempting
-  `global/observability` — this is an account-level, one-time console toggle
+  `global/observability`, this is an account-level, one-time console toggle
   Terraform cannot perform for you (IAM Identity Center → Enable). If it
   isn't on, `aws_grafana_workspace` fails to create.
 - **Your own copy of the repository, on your own GitHub account.** The OIDC
@@ -160,7 +160,7 @@ Everything from here on operates on this clone.
 
 ## 4. One-time global infrastructure (apply in this exact order)
 
-Each of these is applied once, manually, from your local machine — the
+Each of these is applied once, manually, from your local machine, the
 **only** manual `terraform apply` commands in this entire process. The
 pipeline authenticates using roles some of these steps create, so they
 can't create themselves.
@@ -205,23 +205,23 @@ IAM Identity Center in the AWS Console, then re-run.
 
 **From this point on, no more local `terraform apply` commands appear in
 this runbook.** `infra/environments/dev` and `infra/environments/prod` are
-created entirely by pushing/merging to `develop`/`main` — Sections 6 and 7.
+created entirely by pushing/merging to `develop`/`main` - Sections 6 and 7.
 
 ---
 
 ## 5. GitHub repository configuration
 
-Do this now, before your first push — some of it is genuinely required
+Do this now, before your first push, some of it is genuinely required
 before `develop` exists, and doing it up front avoids a confusing
 first-push failure.
 
 ### 5a. Switch to the `develop` branch
-It already exists on the remote from the clone — no need to create it:
+It already exists on the remote from the clone, no need to create it:
 ```bash
 git checkout develop
 ```
 
-### 5b. Set repository Variables — Part 1 (available now)
+### 5b. Set repository Variables - Part 1 (available now)
 Settings → Secrets and variables → Actions → **Variables** tab → New
 repository variable:
 
@@ -233,12 +233,12 @@ repository variable:
 | `ECR_REGISTRY` | everything before the last `/` in `repository_url` | Section 4, step 4 |
 | `ECR_REPOSITORY` | everything after the last `/` in `repository_url` | Section 4, step 4 |
 
-**Do not try to set `DEV_*`/`PROD_*` variables yet — they don't exist yet.**
+**Do not try to set `DEV_*`/`PROD_*` variables yet, they don't exist yet.**
 Their values are Terraform outputs from `environments/dev`/`environments/prod`,
 which haven't been created. That happens in Sections 6 and 7. Setting these
 now is impossible, not just premature.
 
-No secrets are required anywhere in this project — authentication is
+No secrets are required anywhere in this project.Authentication is
 entirely OIDC-based, there are no long-lived AWS keys to store.
 
 ### 5c. Create GitHub Environments
@@ -350,7 +350,7 @@ sequencing here, not GitHub Actions' default parallelism.
 
 ### 7a. Fix prod's domain_name, then open a PR — don't push directly to `main`
 `infra/environments/prod/terraform.tfvars` has the same
-`domain_name = "<your-registered-domain>"` placeholder dev had — it hasn't
+`domain_name = "<your-registered-domain>"` placeholder dev had, it hasn't
 been touched yet, since Section 5d only edited the dev copy. Fix it on
 `develop` now, so the fix rides along in the PR diff:
 
@@ -385,7 +385,7 @@ This triggers both workflows on `main`. Unlike dev:
 
 Both `apply-prod` and `deploy-prod` will be sitting in the Actions tab
 simultaneously, both "Waiting." **This is exactly what gives you manual
-control of the order — use it.**
+control of the order, use it.**
 
 ### 7d. Approve `apply-prod` only — do not approve `deploy-prod` yet
 Let the full prod infra apply complete. Expect this to take longer than dev:
@@ -412,7 +412,7 @@ test against your prod domain.
 ### Known gap worth stating plainly
 Because `build-and-push` triggers on every push to `main` (not just `develop`),
 merging `develop` → `main` causes a **second image build** from the merge
-commit, not a redeploy of the exact image already validated in dev — a
+commit, not a redeploy of the exact image already validated in dev, a
 deviation from strict build-once/promote-by-reference. Functionally
 equivalent as long as the merge is a clean fast-forward with no conflicts,
 but worth being able to name if asked: the correct fix is having prod deploy
@@ -471,7 +471,7 @@ so this isn't Terraform-automated here):**
   for the actual reason before assuming anything else.
 - **Rollback**: `aws ecs update-service --cluster <cluster> --service
   <service> --task-definition <family>:<previous-revision>`.
-- **No SSH anywhere** — Fargate has no host. Use ECS Exec / SSM Session
+- **No SSH anywhere**  Fargate has no host. Use ECS Exec / SSM Session
   Manager for container-level shell access if ever needed.
 - **No long-lived AWS credentials anywhere in CI** — everything is OIDC.
 
@@ -550,7 +550,7 @@ apply`/`plan`:
 
 **Documented, not yet fixed** (fair to raise unprompted in review):
 - `kms:*` on the `terraform-apply` role (item 2 above) is broader than
-  necessary — a tighter policy would scope it to the specific default key
+  necessary,a tighter policy would scope it to the specific default key
   ARNs and the exact actions RDS needs.
 - **`apply-dev` and `deploy-dev` still have no formal dependency between
   them** — `infra-pipeline.yml` and `app-pipeline.yml` remain two fully
@@ -574,5 +574,5 @@ apply`/`plan`:
 *Questions or issues not covered here should be diagnosed the same way every
 item above was: query the actual AWS resource state directly (CloudWatch
 Logs, `describe-services`, `describe-tasks`, AMP's own query API) rather
-than inferring from `terraform apply` succeeding — a clean apply confirms
+than inferring from `terraform apply` succeeding, a clean apply confirms
 the Terraform is valid, not that the resulting system behaves correctly.*
